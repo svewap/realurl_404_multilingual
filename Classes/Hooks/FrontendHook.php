@@ -128,7 +128,15 @@ class FrontendHook {
 			$error_header = $GLOBALS['TYPO3_CONF_VARS']['FE']['pageNotFound_handling_statheader'];
 			$error_header = ($error_header ? $error_header : "HTTP/1.0 404 Not Found");
 			header($error_header);
-			if ($GLOBALS['TYPO3_CONF_VARS']['SYS']['curlUse']) {
+
+			// check cache
+			$cache = $GLOBALS['typo3CacheManager']->getCache('realurl_404_multilingual');
+			$cacheKey = hash('sha1',$url);
+			if ($cache->has($cacheKey))
+			{
+				$urlcontent = $cache->get($cacheKey);
+			}
+			elseif ($GLOBALS['TYPO3_CONF_VARS']['SYS']['curlUse']) {
 				// Open url by curl
 				$ch = curl_init();
 				curl_setopt($ch,CURLOPT_URL,$url);
@@ -149,10 +157,16 @@ class FrontendHook {
 				}
 				$urlcontent = curl_exec($ch);
 				curl_close($ch);
+
+				// save to cache
+				$cache->set($cacheKey,$urlcontent,array());
 			} else {
 				// Open url by fopen
 				set_time_limit(5);
 				$urlcontent = file_get_contents($url.'?tx_realurl404multilingual=1');
+
+				// save to cache
+				$cache->set($cacheKey,$urlcontent,array());
 			}
 		}
 
@@ -208,6 +222,4 @@ class FrontendHook {
 
 }
 
-if (defined('TYPO3_MODE') && $TYPO3_CONF_VARS[TYPO3_MODE]['XCLASS']['ext/realurl_404_multilingual/Classes/Hooks/Frontend.php']) {
-	require_once ($TYPO3_CONF_VARS[TYPO3_MODE]['XCLASS']['ext/realurl_404_multilingual/Classes/Hooks/Frontend.php']);
-}
+?>
