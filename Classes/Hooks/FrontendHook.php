@@ -1,5 +1,5 @@
 <?php
-namespace TYPO3\CMS\Realurl404Multilingual\Hook;
+namespace TYPO3\CMS\Realurl404Multilingual\Hooks;
 
 /***************************************************************
  * Copyright notice
