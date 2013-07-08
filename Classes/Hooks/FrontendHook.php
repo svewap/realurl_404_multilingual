@@ -114,8 +114,6 @@ class FrontendHook {
 
 						if (is_array($typo3_conf_var_realurl['preVars'][$key]['valueMap']) && array_key_exists($lang,$typo3_conf_var_realurl['preVars'][$key]['valueMap'])) {
 							$url_array[] = $lang;
-						} elseif ($typo3_conf_var_realurl['preVars'][$key]['valueDefault']) {
-							$url_array[] = $typo3_conf_var_realurl['preVars'][$key]['valueDefault'];
 						}
 					}
 				}
