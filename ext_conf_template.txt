@@ -1,0 +1,2 @@
+# cat=basic/enable/101; type=options[LLL:EXT:realurl_404_multilingual/Resources/Private/Language/locallang_db.xlf:extconf.modeType1=1,LLL:EXT:realurl_404_multilingual/Resources/Private/Language/locallang_db.xlf:extconf.modeType2=2]; label=LLL:EXT:realurl_404_multilingual/Resources/Private/Language/locallang_db.xlf:extconf.modeTitle
+mode = 1
