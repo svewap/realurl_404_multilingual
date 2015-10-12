@@ -89,7 +89,7 @@ class FrontendHook {
 
         switch ($extConf['mode']) {
             case self::MODE_CURL:
-                $this->get404PageAndDispaly($url404);
+                $this->get404PageAndDisplay($url404);
                 break;
             case self::MODE_REDIRECT:
             default:
@@ -135,7 +135,7 @@ class FrontendHook {
      * @param  string $url404 404 page url
      * @return void
      */
-    private function get404PageAndDispaly($url404) {
+    private function get404PageAndDisplay($url404) {
         
         // header 404
         $error_header = $GLOBALS['TYPO3_CONF_VARS']['FE']['pageNotFound_handling_statheader'];
