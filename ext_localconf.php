@@ -13,5 +13,7 @@ if (!is_array($GLOBALS['TYPO3_CONF_VARS']['SYS']['caching']['cacheConfigurations
 }
 
 
+$GLOBALS['TYPO3_CONF_VARS']['SC_OPTIONS']['t3lib/class.t3lib_tcemain.php']['clearCachePostProc'][] = 'EXT:realurl_404_multilingual/Classes/Hooks/ClearCachePostProc.php:&WapplerSystems\\Realurl404Multilingual\\Hooks\\ClearCachePostProc->clearCachePostProc';
+
 
 ?>
