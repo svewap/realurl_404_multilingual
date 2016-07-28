@@ -6,12 +6,14 @@ if (!defined ('TYPO3_MODE')) {
 
 $TYPO3_CONF_VARS['FE']['pageNotFound_handling'] = 'USER_FUNCTION:EXT:'.$_EXTKEY.'/Classes/Hooks/FrontendHook.php:WapplerSystems\\Realurl404Multilingual\\Hooks\\FrontendHook->pageErrorHandler';
 
+
 // Caching the 404 pages - default expire 3600 seconds
-if (!is_array($TYPO3_CONF_VARS['SYS']['caching']['cacheConfigurations']['realurl_404_multilingual'])) {
-	$TYPO3_CONF_VARS['SYS']['caching']['cacheConfigurations']['realurl_404_multilingual'] = array(
-		'frontend' => 't3lib_cache_frontend_VariableFrontend',
-		'backend' => 't3lib_cache_backend_fileBackend'
-	);
+if (!is_array($GLOBALS['TYPO3_CONF_VARS']['SYS']['caching']['cacheConfigurations']['realurl_404_multilingual'])) {
+	$GLOBALS['TYPO3_CONF_VARS']['SYS']['caching']['cacheConfigurations']['realurl_404_multilingual'] = array();
 }
+
+
+$GLOBALS['TYPO3_CONF_VARS']['SC_OPTIONS']['t3lib/class.t3lib_tcemain.php']['clearCachePostProc'][] = 'EXT:realurl_404_multilingual/Classes/Hooks/ClearCachePostProc.php:&WapplerSystems\\Realurl404Multilingual\\Hooks\\ClearCachePostProc->clearCachePostProc';
+
 
 ?>
