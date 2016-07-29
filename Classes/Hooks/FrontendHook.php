@@ -197,7 +197,7 @@ class FrontendHook
 
         $useHttps = $_SERVER['HTTPS'];
 
-        return (empty($useHttps) ? "http" : "https") . "://".implode("/",$url_array);
+        return ((!empty($useHttps) && $useHttps !== 'off') ? "https" : "http") . "://".implode("/",$url_array);
     }
 
 
