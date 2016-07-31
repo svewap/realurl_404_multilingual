@@ -117,7 +117,7 @@ class FrontendHook
         /** @var \TYPO3\CMS\Core\Cache\Frontend\FrontendInterface $cache */
         $cache = GeneralUtility::makeInstance('TYPO3\\CMS\\Core\\Cache\\CacheManager')->getCache('realurl_404_multilingual');
         $cacheKey = hash('sha1',$url404 . '-' . ($GLOBALS['TSFE']->fe_user->user ? $GLOBALS['TSFE']->fe_user->user['uid'] : ''));
-        if ($cache->has($cacheKey) && false) {
+        if ($cache->has($cacheKey)) {
             $content = $cache->get($cacheKey);
         } else {
             $content = $this->getUrl($url404);
@@ -228,14 +228,17 @@ class FrontendHook
             $errorpage = ($errorpage == '' ? '404' : $errorpage);
 
             // find language key
-            foreach ($config_realurl['preVars'] as $key => $val) {
-                if (isset($config_realurl['preVars'][$key]['GETvar']) && $config_realurl['preVars'][$key]['GETvar'] == "L") {
+            if (is_array($config_realurl['preVars'])) {
+                foreach ($config_realurl['preVars'] as $key => $val) {
+                    if (isset($config_realurl['preVars'][$key]['GETvar']) && $config_realurl['preVars'][$key]['GETvar'] == "L") {
 
-                    if ($lang != false && is_array($config_realurl['preVars'][$key]['valueMap']) && array_key_exists($lang,
-                            $config_realurl['preVars'][$key]['valueMap'])) {
-                        $url_array[] = $lang;
-                    } elseif ($config_realurl['preVars'][$key]['valueDefault']) {
-                        $url_array[] = $config_realurl['preVars'][$key]['valueDefault'];
+                        if ($lang != false && is_array($config_realurl['preVars'][$key]['valueMap']) && array_key_exists($lang,
+                                $config_realurl['preVars'][$key]['valueMap'])
+                        ) {
+                            $url_array[] = $lang;
+                        } elseif ($config_realurl['preVars'][$key]['valueDefault']) {
+                            $url_array[] = $config_realurl['preVars'][$key]['valueDefault'];
+                        }
                     }
                 }
             }
