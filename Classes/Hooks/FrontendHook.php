@@ -27,6 +27,7 @@ namespace WapplerSystems\Realurl404Multilingual\Hooks;
  ***************************************************************/
 
 use \TYPO3\CMS\Core\Utility\GeneralUtility;
+use \TYPO3\CMS\Core\Utility\HttpUtility;
 
 /**
  *
@@ -35,24 +36,77 @@ class FrontendHook
 {
 
     /**
+     * show error page directly
+     */
+    const MODE_NOREDIRECT = '1';
+
+    /**
+     * use redirect
+     */
+    const MODE_REDIRECT = '2';
+
+
+    /**
+     * host
+     * @var string current host
+     */
+    protected $host = '_DEFAULT';
+
+
+    /**
+     * typo3 conf var 404
+     * @var array EXTCONF
+     */
+    protected $config = null;
+
+
+    /**
+     * initialize host and this->typo3_conf_var_404
+     */
+    public function __construct()
+    {
+        $this->host = GeneralUtility::getIndpEnv('HTTP_HOST');
+        // define config for error_404_multilingual
+        $this->config = $this->getConfiguration($GLOBALS['TYPO3_CONF_VARS']['EXTCONF']['realurl_404_multilingual']);
+        if (!is_array($this->config)) {
+            // set the default
+            $this->config = array(
+                'errorPage' => '404',
+                'redirects' => array(),
+                'stringConversion' => 'none',
+            );
+        }
+    }
+
+
+    /**
      * @param $params
      * @param \TYPO3\CMS\Frontend\Controller\TypoScriptFrontendController $obj
      */
     public function pageErrorHandler(&$params, \TYPO3\CMS\Frontend\Controller\TypoScriptFrontendController &$obj)
     {
 
+        $extConf = unserialize($GLOBALS['TYPO3_CONF_VARS']['EXT']['extConf']['realurl_404_multilingual']);
         $currentUrl = $params['currentUrl'];
-
-        $host = \TYPO3\CMS\Core\Utility\GeneralUtility::getIndpEnv('HTTP_HOST');
-        // define config for error_404_multilingual
-        $typo3_conf_var_404 = $this->getConfiguration($GLOBALS['TYPO3_CONF_VARS']['EXTCONF']['realurl_404_multilingual'],
-            $host);
-        if (!is_array($typo3_conf_var_404)) {
-            // set the default
-            $typo3_conf_var_404 = array('errorPage' => '404', 'redirects' => array(), 'stringConversion' => 'none',);
+        $url404 = $this->getPageNotFoundUrl($currentUrl);
+        switch ($extConf['mode']) {
+            case self::MODE_NOREDIRECT:
+                $this->get404PageAndDisplay($url404);
+                break;
+            default:
+                HttpUtility::redirect($url404, HttpUtility::HTTP_STATUS_301);
+                break;
         }
+    }
 
-        $url404 = $this->getPageNotFoundUrl($currentUrl,$typo3_conf_var_404);
+
+    /**
+     * get page and echo it
+     * @param  string $url404 404 page url
+     * @return void
+     */
+    private function get404PageAndDisplay($url404) {
+
 
         // header 404
         $error_header = $GLOBALS['TYPO3_CONF_VARS']['FE']['pageNotFound_handling_statheader'];
@@ -62,14 +116,14 @@ class FrontendHook
         // check cache
         /** @var \TYPO3\CMS\Core\Cache\Frontend\FrontendInterface $cache */
         $cache = GeneralUtility::makeInstance('TYPO3\\CMS\\Core\\Cache\\CacheManager')->getCache('realurl_404_multilingual');
-        $cacheKey = hash('sha1', $url404);
-        if ($cache->has($cacheKey)) {
+        $cacheKey = hash('sha1',$url404 . '-' . ($GLOBALS['TSFE']->fe_user->user ? $GLOBALS['TSFE']->fe_user->user['uid'] : ''));
+        if ($cache->has($cacheKey) && false) {
             $content = $cache->get($cacheKey);
         } else {
             $content = $this->getUrl($url404);
             $cache->set($cacheKey, $content, array());
 
-            switch ($typo3_conf_var_404['stringConversion']) {
+            switch ($this->config['stringConversion']) {
                 case 'utf8_encode' : {
                     $content = utf8_encode($content);
                     break;
@@ -124,10 +178,9 @@ class FrontendHook
 
     /**
      * @param string $currentUrl
-     * @param array $typo3_conf_var_404
      * @return string
      */
-    private function getPageNotFoundUrl($currentUrl = "",$typo3_conf_var_404 = array())
+    private function getPageNotFoundUrl($currentUrl = "")
     {
 
         $host = \TYPO3\CMS\Core\Utility\GeneralUtility::getIndpEnv('HTTP_HOST');
@@ -135,59 +188,54 @@ class FrontendHook
         $uri = $this->getUri($currentUrl);
         list($script, $option) = explode("?", $uri);
 
-        // define config for realurl
-        $typo3_conf_var_realurl = $this->getConfiguration($GLOBALS['TYPO3_CONF_VARS']['EXTCONF']['realurl'], $host);
+        // get config for realurl
+        $config_realurl = $this->getConfiguration($GLOBALS['TYPO3_CONF_VARS']['EXTCONF']['realurl'], $host);
 
         // removes all leading slashes in array
-        if (count($typo3_conf_var_404['redirects']) > 0) {
+        if (count($this->config['redirects']) > 0) {
             $redirects = array();
-            foreach ($typo3_conf_var_404['redirects'] as $key => $val) {
+            foreach ($this->config['redirects'] as $key => $val) {
                 $redirects[$this->getUri($key)] = $this->getUri($val);
             }
-            $typo3_conf_var_404['redirects'] = $redirects;
+            $this->config['redirects'] = $redirects;
         }
 
         // fallback if typo3_conf_var_404 not an array
-        if (!is_array($typo3_conf_var_404['redirects'])) {
-            $typo3_conf_var_404['redirects'] = array();
+        if (!is_array($this->config['redirects'])) {
+            $this->config['redirects'] = array();
         }
 
         // First element will be the host
         $url_array = array();
         $url_array[] = $host;
-        if (is_array($typo3_conf_var_404['redirects']) && array_key_exists($uri, $typo3_conf_var_404['redirects'])) {
-            // There is a redirect defined for this request URI, so the
-            // value is taken
-            $url_array[] = $typo3_conf_var_404['redirects'][$uri];
-        } elseif (is_array($typo3_conf_var_404['redirects']) && array_key_exists($script,
-                $typo3_conf_var_404['redirects'])
+        if (is_array($this->config['redirects']) && array_key_exists($uri, $this->config['redirects'])) {
+            // There is a redirect defined for this request URI, so the value is taken
+            $url_array[] = $this->config['redirects'][$uri];
+        } elseif (is_array($this->config['redirects']) && array_key_exists($script,
+                $this->config['redirects'])
         ) {
-            // There is a redirect defined for this script, so the value
-            // is taken
-            $url_array[] = $typo3_conf_var_404['redirects'][$script];
+            // There is a redirect defined for this script, so the value is taken
+            $url_array[] = $this->config['redirects'][$script];
         } else {
-            // Normaly no alternative is defined, so the 404 site will be
-            // taken
-            // extract the language
-            $uriSegments = explode('/',$uri);
+            // Normaly no alternative is defined, so the 404 site will be taken extract the language
+            $uriSegments = explode('/', $uri);
             $lang = reset($uriSegments);
             // define the page name
-            $errorpage = $typo3_conf_var_404['errorPage'];
+            $errorpage = $this->config['errorPage'];
             if (!$errorpage) {
-                $errorpage = $typo3_conf_var_realurl['404page'];
+                $errorpage = $config_realurl['404page'];
             }
             $errorpage = ($errorpage == '' ? '404' : $errorpage);
 
             // find language key
-            foreach ($typo3_conf_var_realurl['preVars'] as $key => $val) {
-                if (isset($typo3_conf_var_realurl['preVars'][$key]['GETvar']) && $typo3_conf_var_realurl['preVars'][$key]['GETvar'] == "L") {
+            foreach ($config_realurl['preVars'] as $key => $val) {
+                if (isset($config_realurl['preVars'][$key]['GETvar']) && $config_realurl['preVars'][$key]['GETvar'] == "L") {
 
-                    if ($lang != false && is_array($typo3_conf_var_realurl['preVars'][$key]['valueMap']) && array_key_exists($lang,
-                            $typo3_conf_var_realurl['preVars'][$key]['valueMap'])
-                    ) {
+                    if ($lang != false && is_array($config_realurl['preVars'][$key]['valueMap']) && array_key_exists($lang,
+                            $config_realurl['preVars'][$key]['valueMap'])) {
                         $url_array[] = $lang;
-                    } elseif ($typo3_conf_var_realurl['preVars'][$key]['valueDefault']) {
-                        $url_array[] = $typo3_conf_var_realurl['preVars'][$key]['valueDefault'];
+                    } elseif ($config_realurl['preVars'][$key]['valueDefault']) {
+                        $url_array[] = $config_realurl['preVars'][$key]['valueDefault'];
                     }
                 }
             }
@@ -197,7 +245,7 @@ class FrontendHook
 
         $useHttps = $_SERVER['HTTPS'];
 
-        return (empty($useHttps) ? "http" : "https") . "://".implode("/",$url_array);
+        return ((!empty($useHttps) && $useHttps !== 'off') ? "https" : "http") . "://" . implode("/", $url_array);
     }
 
 
@@ -205,7 +253,8 @@ class FrontendHook
      * @param string $url
      * @return string
      */
-    function getUrl($url = "") {
+    function getUrl($url = "")
+    {
 
         if ($GLOBALS['TYPO3_CONF_VARS']['SYS']['curlUse']) {
             // Open url by curl
@@ -213,10 +262,14 @@ class FrontendHook
             curl_setopt($ch, CURLOPT_URL, $url);
             curl_setopt($ch, CURLOPT_HEADER, false);
             curl_setopt($ch, CURLOPT_POST, true);
-            curl_setopt($ch, CURLOPT_POSTFIELDS, 'tx_realurl404multilingual=1');
+            curl_setopt($ch, CURLOPT_POSTFIELDS, 'tx_realurl404multilingual=1' . $this->addFESeesionKeyStringIfLoggedIn());
+
             //curl_setopt($ch, CURLOPT_FOLLOWLOCATION, true);
             curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
             curl_setopt($ch, CURLOPT_TIMEOUT, 5);
+            curl_setopt($ch, CURLOPT_USERAGENT, GeneralUtility::getIndpEnv('HTTP_USER_AGENT'));
+
+
             if ($GLOBALS['TYPO3_CONF_VARS']['SYS']['curlProxyTunnel']) {
                 curl_setopt($ch, CURLOPT_HTTPPROXYTUNNEL, $GLOBALS['TYPO3_CONF_VARS']['SYS']['curlProxyTunnel']);
             }
@@ -233,13 +286,44 @@ class FrontendHook
         } else {
             // Open url by fopen
             set_time_limit(5);
-            $urlContent = file_get_contents($url . '?tx_realurl404multilingual=1');
+
+            $opts = array(
+                'http' => array(
+                    'method' => "GET",
+                    'header' => "User-Agent:".GeneralUtility::getIndpEnv('HTTP_USER_AGENT')
+                )
+            );
+            $context = stream_context_create($opts);
+
+            $urlContent = file_get_contents($url . '?tx_realurl404multilingual=1' . $this->addFESeesionKeyStringIfLoggedIn(),false,$context);
         }
 
         return $urlContent;
     }
 
 
+    /**
+     * add session key if user is logged in
+     *
+     * @return string session key
+     */
+    private function addFESeesionKeyStringIfLoggedIn()
+    {
+        if ($GLOBALS['TSFE']->fe_user->user) {
+            return '&FE_SESSION_KEY=' .
+            rawurlencode(
+                $GLOBALS['TSFE']->fe_user->id .
+                '-' .
+                md5(
+                    $GLOBALS['TSFE']->fe_user->id .
+                    '/' .
+                    $GLOBALS['TYPO3_CONF_VARS']['SYS']['encryptionKey']
+                )
+            );
+        }
+        return '';
+    }
+
+
 }
 
-?>
