@@ -211,7 +211,7 @@ class FrontendHook
         $url_array = array();
         $url_array[] = $host;
         $sitePath = \TYPO3\CMS\Core\Utility\GeneralUtility::getIndpEnv('TYPO3_SITE_PATH');
-        if ($sitePath) {
+        if ($sitePath && strlen(trim($sitePath, '/')) > 0) {
             $url_array[] = trim($sitePath, '/');
         }
         if (is_array($this->config['redirects']) && array_key_exists($uri, $this->config['redirects'])) {
