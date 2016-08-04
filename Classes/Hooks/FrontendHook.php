@@ -119,9 +119,12 @@ class FrontendHook
         $cacheKey = hash('sha1',$url404 . '-' . ($GLOBALS['TSFE']->fe_user->user ? $GLOBALS['TSFE']->fe_user->user['uid'] : ''));
         if ($cache->has($cacheKey)) {
             $content = $cache->get($cacheKey);
-        } else {
+        }
+        if (empty($content)) {
             $content = $this->getUrl($url404);
-            $cache->set($cacheKey, $content, array());
+            if(!empty($content)) {
+                $cache->set($cacheKey, $content, array());
+            }
 
             switch ($this->config['stringConversion']) {
                 case 'utf8_encode' : {
