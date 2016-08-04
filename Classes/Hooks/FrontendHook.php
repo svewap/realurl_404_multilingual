@@ -208,6 +208,10 @@ class FrontendHook
         // First element will be the host
         $url_array = array();
         $url_array[] = $host;
+        $sitePath = \TYPO3\CMS\Core\Utility\GeneralUtility::getIndpEnv('TYPO3_SITE_PATH');
+        if ($sitePath) {
+            $url_array[] = trim($sitePath, '/');
+        }
         if (is_array($this->config['redirects']) && array_key_exists($uri, $this->config['redirects'])) {
             // There is a redirect defined for this request URI, so the value is taken
             $url_array[] = $this->config['redirects'][$uri];
