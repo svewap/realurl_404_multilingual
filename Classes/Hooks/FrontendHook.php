@@ -90,11 +90,11 @@ class FrontendHook
         $currentUrl = $params['currentUrl'];
         $url404 = $this->getPageNotFoundUrl($currentUrl);
         switch ($extConf['mode']) {
-            case self::MODE_NOREDIRECT:
-                $this->get404PageAndDisplay($url404);
+            case self::MODE_REDIRECT:
+                HttpUtility::redirect($url404, HttpUtility::HTTP_STATUS_301);
                 break;
             default:
-                HttpUtility::redirect($url404, HttpUtility::HTTP_STATUS_301);
+                $this->get404PageAndDisplay($url404);
                 break;
         }
     }
