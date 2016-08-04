@@ -123,19 +123,18 @@ class FrontendHook
         if (empty($content)) {
             $content = $this->getUrl($url404);
             if(!empty($content)) {
+                switch ($this->config['stringConversion']) {
+                    case 'utf8_encode' : {
+                        $content = utf8_encode($content);
+                        break;
+                    }
+                    case 'utf8_decode' : {
+                        $content = utf8_decode($content);
+                        break;
+                    }
+                }
+                
                 $cache->set($cacheKey, $content, array());
-            }
-
-            switch ($this->config['stringConversion']) {
-                case 'utf8_encode' : {
-                    $content = utf8_encode($content);
-                    break;
-                }
-                case 'utf8_decode' : {
-                    $content = utf8_decode($content);
-                    break;
-                }
-
             }
         }
 
