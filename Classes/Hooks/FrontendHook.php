@@ -67,11 +67,13 @@ class FrontendHook
     {
         $this->host = GeneralUtility::getIndpEnv('HTTP_HOST');
         // define config for error_404_multilingual
-        $this->config = $this->getConfiguration($GLOBALS['TYPO3_CONF_VARS']['EXTCONF']['realurl_404_multilingual']);
+        $this->config = $this->getConfiguration($GLOBALS['TYPO3_CONF_VARS']['EXTCONF']['realurl_404_multilingual'],
+            $this->host);
         if (!is_array($this->config)) {
             // set the default
             $this->config = array(
                 'errorPage' => '404',
+                'unauthorizedPage' => '401',
                 'redirects' => array(),
                 'stringConversion' => 'none',
             );
@@ -88,13 +90,34 @@ class FrontendHook
 
         $extConf = unserialize($GLOBALS['TYPO3_CONF_VARS']['EXT']['extConf']['realurl_404_multilingual']);
         $currentUrl = $params['currentUrl'];
-        $url404 = $this->getPageNotFoundUrl($currentUrl);
+        $reasonText = $params['reasonText'];
+        $pageAccessFailureReasons = $params['pageAccessFailureReasons'];
+
+
+        if (isset($pageAccessFailureReasons['fe_group'])) {
+
+            $unauthorizedPage = $this->config['unauthorizedPage'];
+            $unauthorizedPage = (!$unauthorizedPage ? '401' : $unauthorizedPage);
+            $destinationUrl = $this->getDestinationUrl($currentUrl, $unauthorizedPage);
+            $header = "HTTP/1.0 401 Unauthorized";
+        } else {
+
+            // define the page name
+            $errorpage = $this->config['errorPage'];
+            $errorpage = ($errorpage == '' ? '404' : $errorpage);
+            $destinationUrl = $this->getDestinationUrl($currentUrl, $errorpage);
+
+            $statusCode = $GLOBALS['TYPO3_CONF_VARS']['FE']['pageNotFound_handling_statheader'];
+            $header = ($statusCode ? $statusCode : "HTTP/1.0 404 Not Found");
+        }
+
+
         switch ($extConf['mode']) {
             case self::MODE_REDIRECT:
-                HttpUtility::redirect($url404, HttpUtility::HTTP_STATUS_301);
+                HttpUtility::redirect($destinationUrl, HttpUtility::HTTP_STATUS_301);
                 break;
             default:
-                $this->get404PageAndDisplay($url404);
+                $this->get404PageAndDisplay($destinationUrl, $header);
                 break;
         }
     }
@@ -102,27 +125,26 @@ class FrontendHook
 
     /**
      * get page and echo it
-     * @param  string $url404 404 page url
+     * @param $url404 string $url404 404 page url
+     * @param $header string http header
      * @return void
      */
-    private function get404PageAndDisplay($url404) {
+    private function get404PageAndDisplay($url404, $header)
+    {
 
-
-        // header 404
-        $error_header = $GLOBALS['TYPO3_CONF_VARS']['FE']['pageNotFound_handling_statheader'];
-        $error_header = ($error_header ? $error_header : "HTTP/1.0 404 Not Found");
-        header($error_header);
+        header($header);
 
         // check cache
         /** @var \TYPO3\CMS\Core\Cache\Frontend\FrontendInterface $cache */
         $cache = GeneralUtility::makeInstance('TYPO3\\CMS\\Core\\Cache\\CacheManager')->getCache('realurl_404_multilingual');
-        $cacheKey = hash('sha1',$url404 . '-' . ($GLOBALS['TSFE']->fe_user->user ? $GLOBALS['TSFE']->fe_user->user['uid'] : ''));
+        $cacheKey = hash('sha1',
+            $url404 . '-' . ($GLOBALS['TSFE']->fe_user->user ? $GLOBALS['TSFE']->fe_user->user['uid'] : ''));
         if ($cache->has($cacheKey)) {
             $content = $cache->get($cacheKey);
         }
         if (empty($content)) {
             $content = $this->getUrl($url404);
-            if(!empty($content)) {
+            if (!empty($content)) {
                 switch ($this->config['stringConversion']) {
                     case 'utf8_encode' : {
                         $content = utf8_encode($content);
@@ -133,7 +155,7 @@ class FrontendHook
                         break;
                     }
                 }
-                
+
                 $cache->set($cacheKey, $content, array());
             }
         }
@@ -180,9 +202,10 @@ class FrontendHook
 
     /**
      * @param string $currentUrl
+     * @param string $suffix
      * @return string
      */
-    private function getPageNotFoundUrl($currentUrl = "")
+    private function getDestinationUrl($currentUrl = "", $suffix)
     {
 
         $host = \TYPO3\CMS\Core\Utility\GeneralUtility::getIndpEnv('HTTP_HOST');
@@ -226,12 +249,7 @@ class FrontendHook
             // Normaly no alternative is defined, so the 404 site will be taken extract the language
             $uriSegments = explode('/', $uri);
             $lang = reset($uriSegments);
-            // define the page name
-            $errorpage = $this->config['errorPage'];
-            if (!$errorpage) {
-                $errorpage = $config_realurl['404page'];
-            }
-            $errorpage = ($errorpage == '' ? '404' : $errorpage);
+
 
             // find language key
             if (is_array($config_realurl['preVars'])) {
@@ -249,7 +267,7 @@ class FrontendHook
                 }
             }
 
-            $url_array[] = $errorpage;
+            $url_array[] = $suffix;
         }
 
         $useHttps = $_SERVER['HTTPS'];
@@ -271,7 +289,8 @@ class FrontendHook
             curl_setopt($ch, CURLOPT_URL, $url);
             curl_setopt($ch, CURLOPT_HEADER, false);
             curl_setopt($ch, CURLOPT_POST, true);
-            curl_setopt($ch, CURLOPT_POSTFIELDS, 'tx_realurl404multilingual=1' . $this->addFESeesionKeyStringIfLoggedIn());
+            curl_setopt($ch, CURLOPT_POSTFIELDS,
+                'tx_realurl404multilingual=1' . $this->addFESeesionKeyStringIfLoggedIn());
 
             //curl_setopt($ch, CURLOPT_FOLLOWLOCATION, true);
             curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
@@ -299,12 +318,13 @@ class FrontendHook
             $opts = array(
                 'http' => array(
                     'method' => "GET",
-                    'header' => "User-Agent:".GeneralUtility::getIndpEnv('HTTP_USER_AGENT')
+                    'header' => "User-Agent:" . GeneralUtility::getIndpEnv('HTTP_USER_AGENT')
                 )
             );
             $context = stream_context_create($opts);
 
-            $urlContent = file_get_contents($url . '?tx_realurl404multilingual=1' . $this->addFESeesionKeyStringIfLoggedIn(),false,$context);
+            $urlContent = file_get_contents($url . '?tx_realurl404multilingual=1' . $this->addFESeesionKeyStringIfLoggedIn(),
+                false, $context);
         }
 
         return $urlContent;
