@@ -93,8 +93,7 @@ class FrontendHook
         $reasonText = $params['reasonText'];
         $pageAccessFailureReasons = $params['pageAccessFailureReasons'];
 
-
-        if (isset($pageAccessFailureReasons['fe_group'])) {
+        if (isset($pageAccessFailureReasons['fe_group']) && array_shift($pageAccessFailureReasons['fe_group']) == -2) {
 
             $unauthorizedPage = $this->config['unauthorizedPage'];
             $unauthorizedPage = (!$unauthorizedPage ? '401' : $unauthorizedPage);
@@ -117,7 +116,7 @@ class FrontendHook
                 HttpUtility::redirect($destinationUrl, HttpUtility::HTTP_STATUS_301);
                 break;
             default:
-                $this->get404PageAndDisplay($destinationUrl, $header);
+                $this->getPageAndDisplay($destinationUrl, $header);
                 break;
         }
     }
@@ -129,7 +128,7 @@ class FrontendHook
      * @param $header string http header
      * @return void
      */
-    private function get404PageAndDisplay($url404, $header)
+    private function getPageAndDisplay($url404, $header)
     {
 
         header($header);
