@@ -73,7 +73,7 @@ class FrontendHook
             // set the default
             $this->config = array(
                 'errorPage' => '404',
-                'unauthorizedPage' => '401',
+                'unauthorizedPage' => '404',
                 'redirects' => array(),
                 'stringConversion' => 'none',
             );
