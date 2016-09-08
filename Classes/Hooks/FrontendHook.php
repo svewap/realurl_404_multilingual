@@ -92,13 +92,16 @@ class FrontendHook
         $currentUrl = $params['currentUrl'];
         $reasonText = $params['reasonText'];
         $pageAccessFailureReasons = $params['pageAccessFailureReasons'];
+        $mode = $extConf['mode'];
 
         if (isset($pageAccessFailureReasons['fe_group']) && array_shift($pageAccessFailureReasons['fe_group']) == -2) {
 
             $unauthorizedPage = $this->config['unauthorizedPage'];
             $unauthorizedPage = (!$unauthorizedPage ? '401' : $unauthorizedPage);
             $destinationUrl = $this->getDestinationUrl($currentUrl, $unauthorizedPage);
-            $header = "HTTP/1.0 401 Unauthorized";
+            $destinationUrl .= "?return_url=".urlencode($currentUrl);
+            //$header = "HTTP/1.0 401 Unauthorized";
+            $mode = self::MODE_REDIRECT; // force redirect
         } else {
 
             // define the page name
@@ -111,7 +114,7 @@ class FrontendHook
         }
 
 
-        switch ($extConf['mode']) {
+        switch ($mode) {
             case self::MODE_REDIRECT:
                 HttpUtility::redirect($destinationUrl, HttpUtility::HTTP_STATUS_301);
                 break;
