@@ -94,7 +94,7 @@ class FrontendHook
         $pageAccessFailureReasons = $params['pageAccessFailureReasons'];
         $mode = $extConf['mode'];
 
-        if (isset($pageAccessFailureReasons['fe_group']) && array_shift($pageAccessFailureReasons['fe_group']) == -2) {
+        if (isset($pageAccessFailureReasons['fe_group']) && array_shift($pageAccessFailureReasons['fe_group']) != 0) {
 
             $unauthorizedPage = $this->config['unauthorizedPage'];
             $unauthorizedPage = (!$unauthorizedPage ? '401' : $unauthorizedPage);
