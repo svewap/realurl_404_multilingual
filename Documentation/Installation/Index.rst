@@ -22,9 +22,10 @@ Installation
 
 ::
 
-   $TYPO3_CONF_VARS['EXTCONF']['realurl_404_multilingual'] = array(
+   $GLOBALS['TYPO3_CONF_VARS']['EXTCONF']['realurl_404_multilingual'] = array(
        '_DEFAULT' => array(
             'errorPage' => '404/',
+            'unauthorizedPage' => '404/',
        ),
    );
 
