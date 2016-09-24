@@ -88,11 +88,19 @@ class FrontendHook
     public function pageErrorHandler(&$params, \TYPO3\CMS\Frontend\Controller\TypoScriptFrontendController &$obj)
     {
 
+        if (!empty(GeneralUtility::_GP('tx_realurl404multilingual')) && intval(GeneralUtility::_GP('tx_realurl404multilingual')) == 1) {
+            // Again landed here -> break
+            header("HTTP/1.0 404 Not Found");
+            echo $this->getProvisionally404Page();
+            exit();
+        }
+
         $extConf = unserialize($GLOBALS['TYPO3_CONF_VARS']['EXT']['extConf']['realurl_404_multilingual']);
         $currentUrl = $params['currentUrl'];
         $reasonText = $params['reasonText'];
         $pageAccessFailureReasons = $params['pageAccessFailureReasons'];
         $mode = $extConf['mode'];
+        $statusCode = $GLOBALS['TYPO3_CONF_VARS']['FE']['pageNotFound_handling_statheader'];
 
         if (isset($pageAccessFailureReasons['fe_group']) && array_shift($pageAccessFailureReasons['fe_group']) != 0) {
 
@@ -108,9 +116,6 @@ class FrontendHook
             $errorpage = $this->config['errorPage'];
             $errorpage = ($errorpage == '' ? '404' : $errorpage);
             $destinationUrl = $this->getDestinationUrl($currentUrl, $errorpage);
-
-            $statusCode = $GLOBALS['TYPO3_CONF_VARS']['FE']['pageNotFound_handling_statheader'];
-            $header = ($statusCode ? $statusCode : "HTTP/1.0 404 Not Found");
         }
 
 
@@ -119,7 +124,7 @@ class FrontendHook
                 HttpUtility::redirect($destinationUrl, HttpUtility::HTTP_STATUS_301);
                 break;
             default:
-                $this->getPageAndDisplay($destinationUrl, $header);
+                $this->getPageAndDisplay($destinationUrl, ($statusCode ? $statusCode : "HTTP/1.0 404 Not Found"));
                 break;
         }
     }
@@ -325,8 +330,14 @@ class FrontendHook
             );
             $context = stream_context_create($opts);
 
-            $urlContent = file_get_contents($url . '?tx_realurl404multilingual=1' . $this->addFESeesionKeyStringIfLoggedIn(),
+            $urlContent = @file_get_contents($url . '?tx_realurl404multilingual=1' . $this->addFESeesionKeyStringIfLoggedIn(),
                 false, $context);
+
+        }
+
+        if (empty($urlContent)) {
+            /* display own 404 page, because the real 404 page couldn't be loaded */
+            $urlContent = $this->getProvisionally404Page();
         }
 
         return $urlContent;
@@ -353,6 +364,15 @@ class FrontendHook
             );
         }
         return '';
+    }
+
+
+    /**
+     * TODO: Generate nice 404 page
+     * @return string
+     */
+    private function getProvisionally404Page() {
+        return "Sorry, but the 404 page was not found! Please check the path to the 404 page.";
     }
 
 
