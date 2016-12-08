@@ -1,0 +1,19 @@
+{
+  "name": "wapplersystems/realurl-404-multilingual",
+  "description": "Shows the defined error page of the given language if the requested page or file could not be found",
+  "type": "typo3-cms-extension",
+  "version": "1.0.7",
+  "license": "GPL-2.0+",
+  "autoload": {
+    "psr-4": {
+      "WapplerSystems\\Realurl404Multilingual\\": "Classes/"
+    }
+  },
+  "replace": {
+    "realurl_404_multilingual": "self.version",
+    "typo3-ter/realurl_404_multilingual": "self.version"
+  },
+  "require": {
+    "typo3/cms": ">=6.0.0 <=8.4.99"
+  }
+}
