@@ -305,7 +305,10 @@ class FrontendHook
             curl_setopt($ch, CURLOPT_POSTFIELDS,
                 'tx_realurl404multilingual=1' . $this->addFESeesionKeyStringIfLoggedIn());
 
-            //curl_setopt($ch, CURLOPT_FOLLOWLOCATION, true);
+            if($GLOBALS['TYPO3_CONF_VARS']['HTTP']['follow_redirects']) {
+                curl_setopt($ch, CURLOPT_FOLLOWLOCATION, true);
+                curl_setopt($ch, CURLOPT_MAXREDIRS, (int)$GLOBALS['TYPO3_CONF_VARS']['HTTP']['max_redirects']);
+            }
             curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
             curl_setopt($ch, CURLOPT_TIMEOUT, 5);
             curl_setopt($ch, CURLOPT_USERAGENT, GeneralUtility::getIndpEnv('HTTP_USER_AGENT'));
