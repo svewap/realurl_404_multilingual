@@ -34,7 +34,7 @@ $EM_CONF[$_EXTKEY] = array(
 	'constraints' => array(
 		'depends' => array(
 			'realurl' => '',
-			'typo3' => '6.0.0-7.9.99',
+			'typo3' => '6.0.0-8.9.99',
 		),
 		'conflicts' => array(
 			'error_404_handling' => '',
