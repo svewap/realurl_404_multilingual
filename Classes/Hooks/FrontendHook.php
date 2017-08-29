@@ -83,10 +83,16 @@ class FrontendHook
 
     /**
      * @param $params
+     * @throws \Exception
      * @param \TYPO3\CMS\Frontend\Controller\TypoScriptFrontendController $obj
      */
     public function pageErrorHandler(&$params, \TYPO3\CMS\Frontend\Controller\TypoScriptFrontendController &$obj)
     {
+        if (GeneralUtility::_GP('tx_realurl404multilingual') == '1')
+        {
+            // we are in a infinite redirect/request loop, which we need to stop
+            throw new \Exception('404 page handler stuck in a redirect/request loop. Please check your configration',1474969985);
+        }
 
         if (GeneralUtility::_GP('tx_realurl404multilingual') != null && intval(GeneralUtility::_GP('tx_realurl404multilingual')) == 1) {
             // Again landed here -> break
@@ -107,7 +113,7 @@ class FrontendHook
             $unauthorizedPage = $this->config['unauthorizedPage'];
             $unauthorizedPage = (!$unauthorizedPage ? '401' : $unauthorizedPage);
             $destinationUrl = $this->getDestinationUrl($currentUrl, $unauthorizedPage);
-            $destinationUrl .= "?return_url=".urlencode($currentUrl);
+            $destinationUrl .= "?return_url=".urlencode($currentUrl)."&tx_realurl404multilingual=1";
             //$header = "HTTP/1.0 401 Unauthorized";
             header("Cache-Control: no-store, no-cache, must-revalidate");
             header("Pragma: no-cache");
@@ -301,7 +307,10 @@ class FrontendHook
             curl_setopt($ch, CURLOPT_POSTFIELDS,
                 'tx_realurl404multilingual=1' . $this->addFESeesionKeyStringIfLoggedIn());
 
-            //curl_setopt($ch, CURLOPT_FOLLOWLOCATION, true);
+            if($GLOBALS['TYPO3_CONF_VARS']['HTTP']['follow_redirects']) {
+                curl_setopt($ch, CURLOPT_FOLLOWLOCATION, true);
+                curl_setopt($ch, CURLOPT_MAXREDIRS, (int)$GLOBALS['TYPO3_CONF_VARS']['HTTP']['max_redirects']);
+            }
             curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
             curl_setopt($ch, CURLOPT_TIMEOUT, 5);
             curl_setopt($ch, CURLOPT_USERAGENT, GeneralUtility::getIndpEnv('HTTP_USER_AGENT'));
