@@ -1,0 +1,33 @@
+{
+	"name": "svewap/realurl-404-multilingual",
+	"type": "typo3-cms-extension",
+	"description": "RealURL 404 multilingual error page",
+	"license": "GPL-2.0+",
+	"keywords": [
+		"typo3",
+		"TYPO3 CMS"
+	],
+	"homepage": "https://github.com/svewap/realurl_404_multilingual",
+	"authors": [
+		{
+			"name": "Sven Wappler",
+			"email": "typo3YYYY@wappler.systems"
+		}
+	],
+	"support": {
+		"issues": "https://github.com/svewap/realurl_404_multilingual/issues",
+		"source": "https://github.com/svewap/realurl_404_multilingual"
+	},
+	"require": {
+		"typo3/cms": ">=6.1.0 <=8.7.99"
+	},
+	"replace": {
+		"realurl_404_multilingual": "self.version",
+		"svewap/realurl-404-multilingual": "self.version"
+	},
+	"autoload": {
+		"psr-4": {
+			"WapplerSystems\\Realurl404Multilingual\\": "Classes/"
+		}
+	}
+}

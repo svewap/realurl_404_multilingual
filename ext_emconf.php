@@ -15,7 +15,7 @@ $EM_CONF[$_EXTKEY] = array(
 	'description' => 'Shows the defined error page of the given language if the requested page or file could not be found',
 	'category' => 'fe',
 	'shy' => 0,
-	'version' => '1.0.7',
+	'version' => '1.0.9',
 	'conflicts' => 'error_404_handling',
 	'priority' => '',
 	'loadOrder' => '',
@@ -34,7 +34,7 @@ $EM_CONF[$_EXTKEY] = array(
 	'constraints' => array(
 		'depends' => array(
 			'realurl' => '',
-			'typo3' => '6.0.0-7.9.99',
+			'typo3' => '6.0.0-8.7.99',
 		),
 		'conflicts' => array(
 			'error_404_handling' => '',

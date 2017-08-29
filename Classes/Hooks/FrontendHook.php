@@ -88,7 +88,7 @@ class FrontendHook
     public function pageErrorHandler(&$params, \TYPO3\CMS\Frontend\Controller\TypoScriptFrontendController &$obj)
     {
 
-        if (!empty(GeneralUtility::_GP('tx_realurl404multilingual')) && intval(GeneralUtility::_GP('tx_realurl404multilingual')) == 1) {
+        if (GeneralUtility::_GP('tx_realurl404multilingual') != null && intval(GeneralUtility::_GP('tx_realurl404multilingual')) == 1) {
             // Again landed here -> break
             header("HTTP/1.0 404 Not Found");
             echo $this->getProvisionally404Page();
@@ -109,6 +109,8 @@ class FrontendHook
             $destinationUrl = $this->getDestinationUrl($currentUrl, $unauthorizedPage);
             $destinationUrl .= "?return_url=".urlencode($currentUrl);
             //$header = "HTTP/1.0 401 Unauthorized";
+            header("Cache-Control: no-store, no-cache, must-revalidate");
+            header("Pragma: no-cache");
             $mode = self::MODE_REDIRECT; // force redirect
         } else {
 
