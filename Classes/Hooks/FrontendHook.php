@@ -185,7 +185,7 @@ class FrontendHook
      * @param string $url
      * @return string
      */
-    function getUri($url = "")
+    private function getUri($url = "")
     {
         if (preg_match("/^\/(.*)/i", $url, $reg)) {
             return $reg[1];
@@ -200,7 +200,7 @@ class FrontendHook
      * @param $key string
      * @return string
      */
-    function getConfiguration($array = array(), $key = '_DEFAULT')
+    private function getConfiguration($array = array(), $key = '_DEFAULT')
     {
         if (is_array($array) && array_key_exists($key, $array)) {
             $domain_key = $key;
@@ -209,9 +209,8 @@ class FrontendHook
         }
         if (is_array($array[$domain_key])) {
             return $array[$domain_key];
-        } else {
-            return $array[$array[$domain_key]];
         }
+        return $array[$array[$domain_key]];
     }
 
 
@@ -255,9 +254,7 @@ class FrontendHook
         if (is_array($this->config['redirects']) && array_key_exists($uri, $this->config['redirects'])) {
             // There is a redirect defined for this request URI, so the value is taken
             $url_array[] = $this->config['redirects'][$uri];
-        } elseif (is_array($this->config['redirects']) && array_key_exists($script,
-                $this->config['redirects'])
-        ) {
+        } elseif (is_array($this->config['redirects']) && array_key_exists($script, $this->config['redirects'])) {
             // There is a redirect defined for this script, so the value is taken
             $url_array[] = $this->config['redirects'][$script];
         } else {
@@ -295,7 +292,7 @@ class FrontendHook
      * @param string $url
      * @return string
      */
-    function getUrl($url = "")
+    private function getUrl($url = "")
     {
 
         if ($GLOBALS['TYPO3_CONF_VARS']['SYS']['curlUse']) {
