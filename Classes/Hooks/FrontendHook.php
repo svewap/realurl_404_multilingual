@@ -26,6 +26,7 @@ namespace WapplerSystems\Realurl404Multilingual\Hooks;
  * script!
  ***************************************************************/
 
+use TYPO3\CMS\Core\Http\RequestFactory;
 use \TYPO3\CMS\Core\Utility\GeneralUtility;
 use \TYPO3\CMS\Core\Utility\HttpUtility;
 
@@ -294,86 +295,32 @@ class FrontendHook
      */
     private function getUrl($url = "")
     {
+        $options = [
+            'query' => ['tx_realurl404multilingual' => 1]
+        ];
 
-        if ($GLOBALS['TYPO3_CONF_VARS']['SYS']['curlUse']) {
-            // Open url by curl
-            $ch = curl_init();
-            curl_setopt($ch, CURLOPT_URL, $url);
-            curl_setopt($ch, CURLOPT_HEADER, false);
-            curl_setopt($ch, CURLOPT_POST, true);
-            curl_setopt($ch, CURLOPT_POSTFIELDS,
-                'tx_realurl404multilingual=1' . $this->addFESeesionKeyStringIfLoggedIn());
-
-            if($GLOBALS['TYPO3_CONF_VARS']['HTTP']['follow_redirects']) {
-                curl_setopt($ch, CURLOPT_FOLLOWLOCATION, true);
-                curl_setopt($ch, CURLOPT_MAXREDIRS, (int)$GLOBALS['TYPO3_CONF_VARS']['HTTP']['max_redirects']);
-            }
-            curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-            curl_setopt($ch, CURLOPT_TIMEOUT, 5);
-            curl_setopt($ch, CURLOPT_USERAGENT, GeneralUtility::getIndpEnv('HTTP_USER_AGENT'));
-
-
-            if ($GLOBALS['TYPO3_CONF_VARS']['SYS']['curlProxyTunnel']) {
-                curl_setopt($ch, CURLOPT_HTTPPROXYTUNNEL, $GLOBALS['TYPO3_CONF_VARS']['SYS']['curlProxyTunnel']);
-            }
-            if ($GLOBALS['TYPO3_CONF_VARS']['SYS']['curlProxyServer']) {
-                curl_setopt($ch, CURLOPT_PROXY, $GLOBALS['TYPO3_CONF_VARS']['SYS']['curlProxyServer']);
-            }
-            if ($GLOBALS['TYPO3_CONF_VARS']['SYS']['curlProxyUserPass']) {
-                curl_setopt($ch, CURLOPT_PROXYUSERPWD, $GLOBALS['TYPO3_CONF_VARS']['SYS']['curlProxyUserPass']);
-            }
-            $urlContent = curl_exec($ch);
-            curl_close($ch);
-
-
-        } else {
-            // Open url by fopen
-            set_time_limit(5);
-
-            $opts = array(
-                'http' => array(
-                    'method' => "GET",
-                    'header' => "User-Agent:" . GeneralUtility::getIndpEnv('HTTP_USER_AGENT')
-                )
-            );
-            $context = stream_context_create($opts);
-
-            $urlContent = @file_get_contents($url . '?tx_realurl404multilingual=1' . $this->addFESeesionKeyStringIfLoggedIn(),
-                false, $context);
-
-        }
-
-        if (empty($urlContent)) {
-            /* display own 404 page, because the real 404 page couldn't be loaded */
-            $urlContent = $this->getProvisionally404Page();
-        }
-
-        return $urlContent;
-    }
-
-
-    /**
-     * add session key if user is logged in
-     *
-     * @return string session key
-     */
-    private function addFESeesionKeyStringIfLoggedIn()
-    {
         if ($GLOBALS['TSFE']->fe_user->user) {
-            return '&FE_SESSION_KEY=' .
-            rawurlencode(
-                $GLOBALS['TSFE']->fe_user->id .
+            $options['query']['FE_SESSION_KEY'] = $GLOBALS['TSFE']->fe_user->id .
                 '-' .
                 md5(
                     $GLOBALS['TSFE']->fe_user->id .
                     '/' .
                     $GLOBALS['TYPO3_CONF_VARS']['SYS']['encryptionKey']
                 )
-            );
+            ;
         }
-        return '';
-    }
 
+        $requestFactory = GeneralUtility::makeInstance(RequestFactory::class);
+        $response = $requestFactory->request($url, 'POST', $options);
+        $responseContents = $response->getBody()->getContents();
+
+        if (empty($responseContents)) {
+            /* display own 404 page, because the real 404 page couldn't be loaded */
+            $responseContents = $this->getProvisionally404Page();
+        }
+
+        return $responseContents;
+    }
 
     /**
      * TODO: Generate nice 404 page
