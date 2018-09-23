@@ -95,7 +95,7 @@ class FrontendHook
             throw new \Exception('404 page handler stuck in a redirect/request loop. Please check your configration',1474969985);
         }
 
-        if (GeneralUtility::_GP('tx_realurl404multilingual') != null && intval(GeneralUtility::_GP('tx_realurl404multilingual')) == 1) {
+        if (GeneralUtility::_GP('tx_realurl404multilingual') != null && (int)(GeneralUtility::_GP('tx_realurl404multilingual')) === 1) {
             // Again landed here -> break
             header("HTTP/1.0 404 Not Found");
             echo $this->getProvisionally404Page();
@@ -232,7 +232,7 @@ class FrontendHook
         $config_realurl = $this->getConfiguration($GLOBALS['TYPO3_CONF_VARS']['EXTCONF']['realurl'], $host);
 
         // removes all leading slashes in array
-        if (count($this->config['redirects']) > 0) {
+        if (\count($this->config['redirects']) > 0) {
             $redirects = array();
             foreach ($this->config['redirects'] as $key => $val) {
                 $redirects[$this->getUri($key)] = $this->getUri($val);
@@ -249,10 +249,10 @@ class FrontendHook
         $url_array = array();
         $url_array[] = $host;
         $sitePath = \TYPO3\CMS\Core\Utility\GeneralUtility::getIndpEnv('TYPO3_SITE_PATH');
-        if ($sitePath && strlen(trim($sitePath, '/')) > 0) {
+        if ($sitePath && \strlen(trim($sitePath, '/')) > 0) {
             $url_array[] = trim($sitePath, '/');
         }
-        if (is_array($this->config['redirects']) && array_key_exists($uri, $this->config['redirects'])) {
+        if (\is_array($this->config['redirects']) && array_key_exists($uri, $this->config['redirects'])) {
             // There is a redirect defined for this request URI, so the value is taken
             $url_array[] = $this->config['redirects'][$uri];
         } elseif (is_array($this->config['redirects']) && array_key_exists($script, $this->config['redirects'])) {
