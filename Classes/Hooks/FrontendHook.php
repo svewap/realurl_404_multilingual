@@ -226,6 +226,11 @@ class FrontendHook
         // get config for realurl
         $config_realurl = $this->getConfiguration($GLOBALS['TYPO3_CONF_VARS']['EXTCONF']['realurl'], $host);
 
+        // fallback if typo3_conf_var_404 not an array
+        if (!\is_array($this->config['redirects'])) {
+            $this->config['redirects'] = array();
+        }
+
         // removes all leading slashes in array
         if (\count($this->config['redirects']) > 0) {
             $redirects = array();
@@ -233,11 +238,6 @@ class FrontendHook
                 $redirects[$this->getUri($key)] = $this->getUri($val);
             }
             $this->config['redirects'] = $redirects;
-        }
-
-        // fallback if typo3_conf_var_404 not an array
-        if (!\is_array($this->config['redirects'])) {
-            $this->config['redirects'] = array();
         }
 
         // First element will be the host
