@@ -30,6 +30,10 @@ use TYPO3\CMS\Core\Http\RequestFactory;
 use \TYPO3\CMS\Core\Utility\GeneralUtility;
 use \TYPO3\CMS\Core\Utility\HttpUtility;
 use TYPO3\CMS\Core\Cache\CacheManager;
+use TYPO3\CMS\Extbase\Configuration\ConfigurationManager;
+use TYPO3\CMS\Extbase\Mvc\Web\Routing\UriBuilder;
+use TYPO3\CMS\Extbase\Object\ObjectManager;
+use TYPO3\CMS\Frontend\ContentObject\ContentObjectRenderer;
 
 /**
  *
@@ -47,19 +51,20 @@ class FrontendHook
      */
     const MODE_REDIRECT = '2';
 
-
     /**
      * host
      * @var string current host
      */
     protected $host = '_DEFAULT';
 
-
     /**
      * typo3 conf var 404
      * @var array EXTCONF
      */
     protected $config = null;
+
+    /** @var UriBuilder */
+    protected $uriBuilder;
 
 
     /**
@@ -73,20 +78,31 @@ class FrontendHook
             $this->host);
         if (!\is_array($this->config)) {
             // set the default
-            $this->config = array(
+            $this->config = [
                 'errorPage' => '404/',
                 'unauthorizedPage' => '404/',
-                'redirects' => array(),
+                'redirects' => [],
                 'stringConversion' => 'none',
-            );
+            ];
         }
+
+
+        /** @var ObjectManager $objectManager */
+        $objectManager = GeneralUtility::makeInstance(ObjectManager::class);
+        /** @var ConfigurationManager $configurationManager */
+        $configurationManager = $objectManager->get(ConfigurationManager::class);
+        /** @var ContentObjectRenderer $contentObjectRenderer */
+        $contentObjectRenderer = $objectManager->get(ContentObjectRenderer::class);
+        $configurationManager->setContentObject($contentObjectRenderer);
+
+        $this->uriBuilder = $objectManager->get(UriBuilder::class);
     }
 
 
     /**
      * @param $params
-     * @throws \Exception
      * @param \TYPO3\CMS\Frontend\Controller\TypoScriptFrontendController $obj
+     * @throws \Exception
      */
     public function pageErrorHandler(&$params, \TYPO3\CMS\Frontend\Controller\TypoScriptFrontendController &$obj)
     {
@@ -100,6 +116,17 @@ class FrontendHook
         $extConf = unserialize($GLOBALS['TYPO3_CONF_VARS']['EXT']['extConf']['realurl_404_multilingual']);
         $currentUrl = $params['currentUrl'];
         $reasonText = $params['reasonText'];
+
+        if ($reasonText === 'ID was outside the domain') {
+
+            $obj->config['config']['typolinkEnableLinksAcrossDomains'] = false;
+            $obj->config['config']['typolinkCheckRootline'] = true;
+
+            $uri = $this->uriBuilder->reset()->setCreateAbsoluteUri(true)->setTargetPageUid($obj->id)->buildFrontendUri();
+
+            HttpUtility::redirect($uri, HttpUtility::HTTP_STATUS_301);
+        }
+
         $pageAccessFailureReasons = $params['pageAccessFailureReasons'];
         $mode = $extConf['mode'];
         $statusCode = $GLOBALS['TYPO3_CONF_VARS']['FE']['pageNotFound_handling_statheader'];
@@ -109,7 +136,7 @@ class FrontendHook
             $unauthorizedPage = $this->config['unauthorizedPage'];
             $unauthorizedPage = (!$unauthorizedPage ? '401' : $unauthorizedPage);
             $destinationUrl = $this->getDestinationUrl($currentUrl, $unauthorizedPage);
-            $destinationUrl .= '?return_url='.urlencode($currentUrl).'&tx_realurl404multilingual=1';
+            $destinationUrl .= '?return_url=' . urlencode($currentUrl) . '&tx_realurl404multilingual=1';
             //$header = "HTTP/1.0 401 Unauthorized";
             header('Cache-Control: no-store, no-cache, must-revalidate');
             header('Pragma: no-cache');
@@ -157,14 +184,16 @@ class FrontendHook
             $content = $this->getUrl($url404);
             if (!empty($content)) {
                 switch ($this->config['stringConversion']) {
-                    case 'utf8_encode' : {
-                        $content = utf8_encode($content);
-                        break;
-                    }
-                    case 'utf8_decode' : {
-                        $content = utf8_decode($content);
-                        break;
-                    }
+                    case 'utf8_encode' :
+                        {
+                            $content = utf8_encode($content);
+                            break;
+                        }
+                    case 'utf8_decode' :
+                        {
+                            $content = utf8_decode($content);
+                            break;
+                        }
                 }
 
                 $cache->set($cacheKey, $content, array());
@@ -301,8 +330,7 @@ class FrontendHook
                     $GLOBALS['TSFE']->fe_user->id .
                     '/' .
                     $GLOBALS['TYPO3_CONF_VARS']['SYS']['encryptionKey']
-                )
-            ;
+                );
         }
 
         /** @var RequestFactory $requestFactory */
@@ -322,7 +350,8 @@ class FrontendHook
      * TODO: Generate nice 404 page
      * @return string
      */
-    private function getProvisionally404Page() {
+    private function getProvisionally404Page()
+    {
         return 'Sorry, but the 404 page was not found! Please check the path to the 404 page.';
     }
 
