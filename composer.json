@@ -22,7 +22,6 @@
 		"typo3/cms-core": ">=6.1.0 <=8.7.99"
 	},
 	"replace": {
-		"realurl_404_multilingual": "self.version",
 		"svewap/realurl-404-multilingual": "self.version"
 	},
 	"autoload": {
